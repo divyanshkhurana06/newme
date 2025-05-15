@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tic Tac Toe Options</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Press Start 2P';
+      background: linear-gradient(145deg, #1a1a2e, #16213e);
+      color: white;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
+    .popup {
+      background-color: #0f3460;
+      padding: 30px;
+      border-radius: 15px;
+      text-align: center;
+      box-shadow: 0 0 20px rgba(233, 69, 96, 0.4);
+      border: 3px solid #e94560;
+    }
+    h2 {
+      margin-bottom: 30px;
+    }
+    .btn {
+      display: block;
+      width: 100%;
+      margin: 10px auto;
+      padding: 12px;
+      font-size: 1rem;
+      background-color: #e94560;
+      color: white;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: background-color 0.3s, transform 0.2s;
+    }
+    .btn:hover {
+      background-color: #ff6f81;
+      transform: scale(1.05);
+    }
+  </style>
+</head>
+<body>
+  <div class="popup">
+    <h2>Choose Game Mode</h2>
+    <button class="btn" onclick="location.href='tictactoe-offline.html'">Multiplayer Offline</button>
+    <button class="btn" onclick="location.href='tictactoe-online.html'">Multiplayer Online</button>
+  </div>
+</body>
+</html>

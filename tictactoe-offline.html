@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tic Tac Toe - Offline</title>
+    <style>
+        body {
+            background-color: #121212;
+            color: #ffffff;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+        }
+        h1 {
+            margin-bottom: 20px;
+        }
+        #board {
+            display: grid;
+            grid-template-columns: repeat(3, 100px);
+            grid-template-rows: repeat(3, 100px);
+            gap: 10px;
+        }
+        .cell {
+            width: 100px;
+            height: 100px;
+            background-color: #1e1e1e;
+            border: 2px solid #ffffff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3rem;
+            color: #f44336; /* Bright red for visibility */
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        .cell:hover {
+            background-color: #333;
+        }
+        #replayBtn {
+            margin-top: 20px;
+            padding: 10px 20px;
+            font-size: 1.2rem;
+            border: none;
+            border-radius: 8px;
+            background-color: #4caf50;
+            color: white;
+            cursor: pointer;
+            transition: background-color 0.3s, transform 0.2s;
+        }
+        #replayBtn:hover {
+            background-color: #45a049;
+            transform: scale(1.05);
+        }
+    </style>
+</head>
+<body>
+    <h1>Tic Tac Toe</h1>
+    <div id="board"></div>
+    <button id="replayBtn" onclick="resetBoard()">Replay</button>
+
+    <script>
+        const boardEl = document.getElementById('board');
+        let board = Array(9).fill(null);
+        let currentPlayer = 'X';
+
+        function renderBoard() {
+            boardEl.innerHTML = '';
+            board.forEach((cell, i) => {
+                const cellEl = document.createElement('div');
+                cellEl.classList.add('cell');
+                cellEl.textContent = cell ? cell : '';
+                cellEl.addEventListener('click', () => handleMove(i));
+                boardEl.appendChild(cellEl);
+            });
+        }
+
+        function handleMove(index) {
+            if (board[index]) return;
+            board[index] = currentPlayer;
+            if (checkWinner(currentPlayer)) {
+                setTimeout(() => alert(`${currentPlayer} wins!`), 50);
+                boardEl.style.pointerEvents = 'none';
+            } else {
+                currentPlayer = currentPlayer === 'X' ? 'O' : 'X';
+            }
+            renderBoard();
+        }
+
+        function checkWinner(player) {
+            const winPatterns = [
+                [0, 1, 2],
+                [3, 4, 5],
+                [6, 7, 8],
+                [0, 3, 6],
+                [1, 4, 7],
+                [2, 5, 8],
+                [0, 4, 8],
+                [2, 4, 6]
+            ];
+            return winPatterns.some(pattern =>
+                pattern.every(index => board[index] === player)
+            );
+        }
+
+        function resetBoard() {
+            board = Array(9).fill(null);
+            currentPlayer = 'X';
+            boardEl.style.pointerEvents = 'auto';
+            renderBoard();
+        }
+
+        renderBoard();
+    </script>
+</body>
+</html>

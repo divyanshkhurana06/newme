@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Connect 4</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #1e1e1e;
+            color: white;
+        }
+        #popup {
+            background: #2c2c2c;
+            padding: 3rem;
+            border-radius: 16px;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1.5rem;
+            animation: fadeIn 0.5s ease-in-out;
+        }
+        .option-btn {
+            padding: 15px 30px;
+            font-size: 1.2rem;
+            border: none;
+            border-radius: 10px;
+            background-color: #4caf50;
+            color: white;
+            cursor: pointer;
+            transition: background-color 0.3s, transform 0.2s;
+        }
+        .option-btn:hover {
+            background-color: #45a049;
+            transform: scale(1.05);
+        }
+        h2, h3 {
+            margin: 0;
+            color: #f1f1f1;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.9); }
+            to { opacity: 1; transform: scale(1); }
+        }
+    </style>
+</head>
+<body>
+    <div id="popup">
+        <h2>Select Game Mode</h2>
+        <button class="option-btn" onclick="chooseMode('multiplayer')">Multiplayer</button>
+        <div id="nextOptions"></div> 
+    </div>
+
+    <script>
+        function chooseMode(mode) {
+            const nextOptions = document.getElementById('nextOptions');
+            nextOptions.innerHTML = ''; // Clear any previous buttons
+
+            if (mode === 'multiplayer') {
+                nextOptions.innerHTML = `
+                    <h3>Multiplayer Options</h3>
+                    <button class="option-btn" onclick="goTo('connect4-offline.html')">Offline</button>
+                    <button class="option-btn" onclick="goTo('connect4-online.html')">Online</button>
+                `;
+            } 
+        }
+
+        function goTo(page) {
+            window.location.href = page;
+        }
+    </script>
+    
+</body>
+</html>

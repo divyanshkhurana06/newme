@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Connect 4 Offline</title>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #1e1e1e;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: white;
+        }
+        #board {
+            display: grid;
+            grid-template-columns: repeat(7, 80px);
+            grid-template-rows: repeat(6, 80px);
+            gap: 5px;
+            background-color: #0055aa;
+            padding: 10px;
+            border-radius: 15px;
+            margin-bottom: 20px;
+        }
+        .cell {
+            width: 80px;
+            height: 80px;
+            background-color: #e0e0e0;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            overflow: hidden;
+        }
+        .disk {
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            position: absolute;
+            top: -80px;
+            animation: drop 0.4s ease forwards;
+        }
+        .red {
+            background-color: red;
+        }
+        .blue {
+            background-color: blue;
+        }
+        @keyframes drop {
+            from { top: -80px; }
+            to { top: 5px; }
+        }
+        #replayBtn {
+            padding: 10px 20px;
+            font-size: 1.2rem;
+            border: none;
+            border-radius: 8px;
+            background-color: #4caf50;
+            color: white;
+            cursor: pointer;
+            transition: background-color 0.3s, transform 0.2s;
+        }
+        #replayBtn:hover {
+            background-color: #45a049;
+            transform: scale(1.05);
+        }
+    </style>
+</head>
+<body>
+    <div id="board"></div>
+    <button id="replayBtn" onclick="resetBoard()">Replay</button>
+
+    <script>
+        const ROWS = 6;
+        const COLS = 7;
+        let board = [];
+        const boardEl = document.getElementById('board');
+        let currentPlayer = 'red';
+
+        function initBoard() {
+            board = [];
+            boardEl.innerHTML = '';
+            for (let r = 0; r < ROWS; r++) {
+                board[r] = [];
+                for (let c = 0; c < COLS; c++) {
+                    const cell = document.createElement('div');
+                    cell.classList.add('cell');
+                    cell.dataset.row = r;
+                    cell.dataset.col = c;
+                    boardEl.appendChild(cell);
+                    board[r][c] = null;
+                }
+            }
+            boardEl.style.pointerEvents = 'auto';
+        }
+
+        function resetBoard() {
+            currentPlayer = 'red';
+            for (let r = 0; r < ROWS; r++) {
+                for (let c = 0; c < COLS; c++) {
+                    board[r][c] = null;
+                    const cell = [...document.querySelectorAll('.cell')].find(el => el.dataset.row == r && el.dataset.col == c);
+                    if (cell) {
+                        cell.innerHTML = '';
+                    }
+                }
+            }
+            boardEl.style.pointerEvents = 'auto';
+        }
+
+        boardEl.addEventListener('click', (e) => {
+            const col = e.target.dataset.col;
+            if (col === undefined) return;
+            dropDisk(parseInt(col));
+        });
+
+        function dropDisk(col) {
+            for (let row = ROWS - 1; row >= 0; row--) {
+                if (!board[row][col]) {
+                    board[row][col] = currentPlayer;
+
+                    const cell = [...document.querySelectorAll('.cell')].find(c => c.dataset.row == row && c.dataset.col == col);
+                    const disk = document.createElement('div');
+                    disk.classList.add('disk', currentPlayer);
+                    cell.appendChild(disk);
+
+                    if (checkWinner(row, col)) {
+                        setTimeout(() => alert(`${currentPlayer.toUpperCase()} wins!`), 50);
+                        boardEl.style.pointerEvents = 'none';
+                    } else {
+                        currentPlayer = currentPlayer === 'red' ? 'blue' : 'red';
+                    }
+                    return;
+                }
+            }
+        }
+
+        function checkWinner(row, col) {
+            const directions = [
+                [0, 1], [1, 0], [1, 1], [1, -1]
+            ];
+
+            for (let [dr, dc] of directions) {
+                let count = 1;
+                count += countDirection(row, col, dr, dc);
+                count += countDirection(row, col, -dr, -dc);
+                if (count >= 4) return true;
+            }
+            return false;
+        }
+
+        function countDirection(row, col, dr, dc) {
+            let count = 0;
+            let r = row + dr;
+            let c = col + dc;
+            while (r >= 0 && r < ROWS && c >= 0 && c < COLS && board[r][c] === currentPlayer) {
+                count++;
+                r += dr;
+                c += dc;
+            }
+            return count;
+        }
+
+        initBoard();
+    </script>
+</body>
+</html>
