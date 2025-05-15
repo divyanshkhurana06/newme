@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Connect 4 Online</title>
+  <style>
+    #board {
+      display: grid;
+      grid-template-columns: repeat(7, 50px);
+      grid-gap: 5px;
+    }
+    .cell {
+      width: 50px;
+      height: 50px;
+      background: #222;
+      border-radius: 50%;
+      cursor: pointer;
+      box-shadow: inset 0 0 5px #000;
+    }
+    .player1 {
+      background-color: red;
+    }
+    .player2 {
+      background-color: yellow;
+    }
+    #status {
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+
+<h1>Connect 4 Online</h1>
+
+<button id="createRoomBtn">Create Room</button>
+<input type="text" id="joinRoomInput" placeholder="Room ID to join" />
+<button id="joinRoomBtn">Join Room</button>
+
+<div id="roomIdDisplay"></div>
+<div id="status"></div>
+<div id="board"></div>
+
+<script type="module">
+import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm'
+
+import { supabaseUrl, supabaseKey } from './config.js'
+const supabase = createClient(supabaseUrl, supabaseKey)
+
+let roomId = null
+let player = null
+let currentTurn = null
+let gameOver = false
+
+const ROWS = 6
+const COLS = 7
+
+const board = Array(ROWS).fill(null).map(() => Array(COLS).fill(null))
+
+const boardDiv = document.getElementById('board')
+const statusDiv = document.getElementById('status')
+const roomIdDisplay = document.getElementById('roomIdDisplay')
+
+function renderBoard() {
+  boardDiv.innerHTML = ''
+  for (let r = 0; r < ROWS; r++) {
+    for (let c = 0; c < COLS; c++) {
+      const cell = document.createElement('div')
+      cell.className = 'cell'
+      if (board[r][c]) {
+        cell.classList.add(board[r][c])
+      }
+      cell.dataset.col = c
+      cell.addEventListener('click', () => handleMove(c))
+      boardDiv.appendChild(cell)
+    }
+  }
+}
+
+function dropPiece(col, playerType) {
+  for (let row = ROWS - 1; row >= 0; row--) {
+    if (!board[row][col]) {
+      board[row][col] = playerType
+      return row
+    }
+  }
+  return -1
+}
+
+function checkWin(playerType) {
+  // Check horizontal, vertical, diagonal (both directions)
+  // Return true if 4 in a row found
+  for (let r = 0; r < ROWS; r++) {
+    for (let c = 0; c < COLS; c++) {
+      if (board[r][c] !== playerType) continue
+
+      // Horizontal
+      if (c + 3 < COLS &&
+          board[r][c+1] === playerType &&
+          board[r][c+2] === playerType &&
+          board[r][c+3] === playerType) return true
+
+      // Vertical
+      if (r + 3 < ROWS &&
+          board[r+1][c] === playerType &&
+          board[r+2][c] === playerType &&
+          board[r+3][c] === playerType) return true
+
+      // Diagonal down-right
+      if (r + 3 < ROWS && c + 3 < COLS &&
+          board[r+1][c+1] === playerType &&
+          board[r+2][c+2] === playerType &&
+          board[r+3][c+3] === playerType) return true
+
+      // Diagonal up-right
+      if (r - 3 >= 0 && c + 3 < COLS &&
+          board[r-1][c+1] === playerType &&
+          board[r-2][c+2] === playerType &&
+          board[r-3][c+3] === playerType) return true
+    }
+  }
+  return false
+}
+
+function checkDraw() {
+  for (let r = 0; r < ROWS; r++) {
+    for (let c = 0; c < COLS; c++) {
+      if (!board[r][c]) return false
+    }
+  }
+  return true
+}
+
+async function setGameOver(winner) {
+  gameOver = true
+  let message = ''
+  if (winner === 'draw') {
+    message = "It's a draw!"
+  } else {
+    message = (winner === player) ? "You won!" : "You lost!"
+  }
+  statusDiv.textContent = message
+
+  // Update room status in DB
+  await supabase
+    .from('rooms')
+    .update({ status: 'finished', winner })
+    .eq('id', roomId)
+}
+
+async function handleMove(col) {
+  if (gameOver) {
+    alert("Game over! Please create or join a new room.")
+    return
+  }
+
+  if (roomId === null || player !== currentTurn) {
+    alert("Wait for your turn or join a room!")
+    return
+  }
+
+  const row = dropPiece(col, player)
+  if (row === -1) {
+    alert("Column full! Choose another column.")
+    return
+  }
+
+  renderBoard()
+
+  // Save move in DB
+  const { error } = await supabase
+    .from('moves')
+    .insert([{ room_id: roomId, player, column: col }])
+
+  if (error) {
+    console.error("Error inserting move:", error)
+    alert("Error making move, try again.")
+    return
+  }
+
+  // Check for win
+  if (checkWin(player)) {
+    await setGameOver(player)
+    return
+  }
+
+  // Check for draw
+  if (checkDraw()) {
+    await setGameOver('draw')
+    return
+  }
+
+  // Switch turn
+  const nextTurn = player === 'player1' ? 'player2' : 'player1'
+  const { error: updateError } = await supabase
+    .from('rooms')
+    .update({ current_turn: nextTurn })
+    .eq('id', roomId)
+
+  if (updateError) {
+    console.error("Error updating turn:", updateError)
+  }
+}
+
+document.getElementById('createRoomBtn').addEventListener('click', async () => {
+  player = 'player1'
+  gameOver = false
+
+  // Clear board
+  for(let r=0;r<ROWS;r++) for(let c=0;c<COLS;c++) board[r][c] = null
+
+  const { data, error } = await supabase
+    .from('rooms')
+    .insert([{ player1: player, current_turn: 'player1', status: 'waiting', winner: null }])
+    .select()
+    .single()
+
+  if (error) {
+    alert("Error creating room: " + error.message)
+    return
+  }
+
+  roomId = data.id
+  roomIdDisplay.textContent = "Room ID: " + roomId
+  currentTurn = 'player1'
+  statusDiv.textContent = "Waiting for player 2 to join..."
+  listenRoom()
+  listenMoves()
+  renderBoard()
+})
+
+document.getElementById('joinRoomBtn').addEventListener('click', async () => {
+  const joinId = document.getElementById('joinRoomInput').value.trim()
+  if (!joinId) return alert("Enter a room ID")
+  player = 'player2'
+  gameOver = false
+
+  // Clear board
+  for(let r=0;r<ROWS;r++) for(let c=0;c<COLS;c++) board[r][c] = null
+
+  const { data, error } = await supabase
+    .from('rooms')
+    .update({ player2: player, status: 'playing', winner: null })
+    .eq('id', joinId)
+    .select()
+    .single()
+
+  if (error) {
+    alert("Room not found or full: " + error.message)
+    return
+  }
+
+  roomId = data.id
+  roomIdDisplay.textContent = "Joined Room: " + roomId
+  currentTurn = data.current_turn
+  statusDiv.textContent = currentTurn === player ? "Your turn!" : "Opponent's turn..."
+  listenRoom()
+  listenMoves()
+  renderBoard()
+})
+
+function listenRoom() {
+  supabase.channel('room-' + roomId)
+    .on('postgres_changes', {
+      event: 'UPDATE',
+      schema: 'public',
+      table: 'rooms',
+      filter: `id=eq.${roomId}`
+    }, payload => {
+      currentTurn = payload.new.current_turn
+      statusDiv.textContent = currentTurn === player ? "Your turn!" : "Opponent's turn..."
+
+      if (payload.new.status === 'finished') {
+        gameOver = true
+        if(payload.new.winner === 'draw') {
+          statusDiv.textContent = "It's a draw!"
+        } else if (payload.new.winner === player) {
+          statusDiv.textContent = "You won!"
+        } else {
+          statusDiv.textContent = "You lost!"
+        }
+      }
+    })
+    .subscribe()
+}
+
+function listenMoves() {
+  supabase.channel('moves-' + roomId)
+    .on('postgres_changes', {
+      event: 'INSERT',
+      schema: 'public',
+      table: 'moves',
+      filter: `room_id=eq.${roomId}`
+    }, payload => {
+      const move = payload.new
+      if (move.player !== player) {
+        dropPiece(move.column, move.player)
+        renderBoard()
+      }
+    })
+    .subscribe()
+}
+
+renderBoard()
+
+</script>
+
+</body>
+</html>
