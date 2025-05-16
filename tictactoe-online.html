@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Tic Tac Toe Online</title>
+  <style>
+    body {
+      background-color: #121212;
+      color: white;
+      font-family: Arial, sans-serif;
+      text-align: center;
+      padding: 20px;
+    }
+    #board {
+      display: grid;
+      grid-template-columns: repeat(3, 100px);
+      gap: 10px;
+      justify-content: center;
+      margin-top: 20px;
+    }
+    .cell {
+      width: 100px;
+      height: 100px;
+      background: #222;
+      color: white;
+      font-size: 2.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      border: 2px solid white;
+    }
+    #status {
+      margin-top: 20px;
+    }
+    #controls {
+      margin-bottom: 20px;
+    }
+    input, button {
+      padding: 10px;
+      margin: 5px;
+      font-size: 1rem;
+    }
+  </style>
+</head>
+<body>
+
+<h1>Tic Tac Toe Online</h1>
+<div id="controls">
+  <button id="createRoomBtn">Create Room</button>
+  <input type="text" id="joinRoomInput" placeholder="Enter Room Code" maxlength="6">
+  <button id="joinRoomBtn">Join Room</button>
+</div>
+<div id="roomCodeDisplay"></div>
+<div id="status"></div>
+<div id="board" style="display:none;"></div>
+
+<script type="module">
+import { createClient } from 'https://esm.sh/@supabase/supabase-js';
+import { supabaseUrl, supabaseKey } from './config.js';
+
+const supabase = createClient(supabaseUrl, supabaseKey);
+
+const createRoomBtn = document.getElementById('createRoomBtn');
+const joinRoomBtn = document.getElementById('joinRoomBtn');
+const joinRoomInput = document.getElementById('joinRoomInput');
+const roomCodeDisplay = document.getElementById('roomCodeDisplay');
+const statusEl = document.getElementById('status');
+const boardEl = document.getElementById('board');
+
+let roomId = null;
+let playerSymbol = null;
+let currentBoard = Array(9).fill(null);
+let channel = null;
+
+function generateRoomCode() {
+  return Math.random().toString(36).substring(2, 8).toUpperCase();
+}
+
+function renderBoard(board) {
+  boardEl.innerHTML = '';
+  board.forEach((cell, i) => {
+    const div = document.createElement('div');
+    div.className = 'cell';
+    div.textContent = cell || '';
+    div.onclick = () => handleMove(i);
+    boardEl.appendChild(div);
+  });
+}
+
+async function handleMove(index) {
+  if (!roomId || currentBoard[index]) return;
+
+  const room = await fetchRoom();
+  if (!room || room.current_turn !== playerSymbol) return;
+
+  currentBoard[index] = playerSymbol;
+  const winner = checkWinner(currentBoard);
+  const status = winner || currentBoard.every(cell => cell) ? 'done' : 'full';
+  const nextTurn = playerSymbol === 'X' ? 'O' : 'X';
+
+  const { error } = await supabase
+    .from('tictactoe_rooms')
+    .update({
+      board: JSON.stringify(currentBoard),
+      current_turn: nextTurn,
+      winner: winner || (status === 'done' ? 'draw' : null),
+      status
+    })
+    .eq('id', roomId);
+
+  if (error) console.error(error);
+}
+
+function checkWinner(board) {
+  const wins = [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
+  for (const [a,b,c] of wins) {
+    if (board[a] && board[a] === board[b] && board[b] === board[c]) return board[a];
+  }
+  return null;
+}
+
+async function fetchRoom() {
+  const { data, error } = await supabase.from('tictactoe_rooms').select('*').eq('id', roomId).single();
+  return data;
+}
+
+function subscribeRoom() {
+  if (channel) supabase.removeChannel(channel);
+
+  channel = supabase.channel('room-' + roomId).on('postgres_changes', {
+    event: '*',
+    schema: 'public',
+    table: 'tictactoe_rooms',
+    filter: `id=eq.${roomId}`
+  }, ({ new: room }) => {
+    currentBoard = JSON.parse(room.board);
+    renderBoard(currentBoard);
+
+    if (room.status === 'waiting') {
+      statusEl.textContent = 'Waiting for player 2 to join...';
+    } else if (room.status === 'done') {
+      statusEl.textContent = room.winner === 'draw' ? "It's a draw!" : `Player ${room.winner} wins!`;
+    } else {
+      statusEl.textContent = room.current_turn === playerSymbol ? 'Your turn' : "Opponent's turn";
+    }
+  }).subscribe();
+}
+
+async function createRoom() {
+  const code = generateRoomCode();
+  const { data, error } = await supabase.from('tictactoe_rooms').insert({
+    room_code: code,
+    player1: 'player1',
+    player2: null,
+    board: JSON.stringify(Array(9).fill(null)),
+    current_turn: 'X',
+    status: 'waiting',
+    winner: null
+  }).select().single();
+
+  if (error) return alert('Create room error: ' + error.message);
+
+  roomId = data.id;
+  playerSymbol = 'X';
+  boardEl.style.display = 'grid';
+  roomCodeDisplay.textContent = `Room Code: ${code}`;
+  renderBoard(Array(9).fill(null));
+  subscribeRoom();
+}
+
+async function joinRoom() {
+  const code = joinRoomInput.value.trim().toUpperCase();
+  if (!code) return alert('Enter a room code');
+
+  const { data, error } = await supabase.from('tictactoe_rooms').select('*').eq('room_code', code).single();
+  if (error || !data) return alert('Room not found');
+
+  roomId = data.id;
+
+  if (!data.player2) {
+    await supabase.from('tictactoe_rooms').update({ player2: 'player2', status: 'full' }).eq('id', roomId);
+    playerSymbol = 'O';
+  } else {
+    playerSymbol = data.player1 === 'player1' ? 'X' : 'O';
+  }
+
+  currentBoard = JSON.parse(data.board);
+  boardEl.style.display = 'grid';
+  roomCodeDisplay.textContent = `Joined room: ${code}`;
+  renderBoard(currentBoard);
+  subscribeRoom();
+}
+
+createRoomBtn.onclick = createRoom;
+joinRoomBtn.onclick = joinRoom;
+</script>
+</body>
+</html>
