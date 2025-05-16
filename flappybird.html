@@ -1,9 +1,10 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Flappy Bird</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     body {
       margin: 0;
@@ -58,7 +59,12 @@
   </div>
 </div>
 
-<script>
+<script type="module">
+  import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+import { supabaseUrl, supabaseKey } from './config.js';
+const supabase = createClient(supabaseUrl, supabaseKey);
+
+
   const canvas = document.getElementById('gameCanvas');
   const ctx = canvas.getContext('2d');
   let birdY = 250;
@@ -147,6 +153,7 @@
     cancelAnimationFrame(animationFrameId);
     document.getElementById('scoreText').innerText = `Your Score: ${score}`;
     document.getElementById('endPopup').style.display = 'block';
+    if (score > 0) saveScoreFlappyBird(score);
   }
 
   function restartGame() {
@@ -157,6 +164,34 @@
   document.addEventListener('keydown', () => {
     if (gameRunning) birdVelocity = flap;
   });
+
+  async function saveScoreFlappyBird(score) {
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    if (userError || !user) {
+      console.log('User not logged in, score not saved.');
+      return;
+    }
+
+    const { data, error } = await supabase
+      .from('scores')
+      .insert([
+        {
+          user_id: user.id,
+          game: 'flappybird',
+          score: score
+        }
+      ]);
+
+    if (error) {
+      console.error('Error saving score:', error);
+    } else {
+      console.log('Score saved successfully:', data);
+    }
+  }
+
+  // ✅ Expose functions to HTML
+  window.startGame = startGame;
+  window.restartGame = restartGame;
 </script>
 </body>
 </html>
