@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Profile | Arcade Hub</title>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    body {
+      font-family: 'Press Start 2P', cursive;
+      background: #0d1b2a;
+      color: white;
+      padding: 2rem;
+      max-width: 480px;
+      margin: auto;
+      text-align: center;
+    }
+    h1 {
+      margin-bottom: 2rem;
+    }
+    .profile-pic {
+      width: 100px;
+      height: 100px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 3px solid #e94560;
+      margin-bottom: 1rem;
+    }
+    input[type="text"] {
+      font-family: 'Press Start 2P', cursive;
+      font-size: 1rem;
+      padding: 0.5rem;
+      width: 80%;
+      border-radius: 8px;
+      border: none;
+      margin-bottom: 1rem;
+      text-align: center;
+    }
+    input[type="file"] {
+      margin-bottom: 1rem;
+    }
+    button {
+      background-color: #e94560;
+      border: none;
+      padding: 10px 20px;
+      color: white;
+      font-family: 'Press Start 2P', cursive;
+      cursor: pointer;
+      border-radius: 8px;
+      margin-bottom: 2rem;
+      transition: background-color 0.3s ease;
+    }
+    button:hover {
+      background-color: #ff5577;
+    }
+    .readonly-field {
+      font-size: 0.9rem;
+      color: #aaa;
+      margin-bottom: 2rem;
+    }
+    .score {
+      font-size: 1.1rem;
+      margin-bottom: 0.5rem;
+    }
+    .message {
+      margin-bottom: 1rem;
+      color: #7fff7f;
+    }
+  </style>
+</head>
+<body>
+  <h1>Your Profile</h1>
+  
+  <img src="" alt="Profile Picture" id="profile-pic" class="profile-pic" />
+  
+  <div>
+    <input type="file" id="avatarInput" accept="image/*" />
+  </div>
+  
+  <div>
+    <input type="text" id="usernameInput" placeholder="Enter username" maxlength="15" />
+  </div>
+  
+  <div class="readonly-field" id="emailField"></div>
+  
+  <button id="saveBtn">Save Profile</button>
+  
+  <h2>Your High Scores</h2>
+  <div class="score" id="snakeScore">🐍 Snake: Loading...</div>
+  <div class="score" id="flappyScore">🐦 Flappy Bird: Loading...</div>
+
+  <div class="message" id="message"></div>
+
+  <script type="module">
+    import { supabaseUrl, supabaseKey } from './config.js';
+    const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+
+    const profilePic = document.getElementById('profile-pic');
+    const avatarInput = document.getElementById('avatarInput');
+    const usernameInput = document.getElementById('usernameInput');
+    const emailField = document.getElementById('emailField');
+    const saveBtn = document.getElementById('saveBtn');
+    const snakeScore = document.getElementById('snakeScore');
+    const flappyScore = document.getElementById('flappyScore');
+    const message = document.getElementById('message');
+
+    let currentUser = null;
+    let avatarFile = null;
+
+    async function fetchProfile() {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        message.innerText = "You need to be signed in to view your profile.";
+        saveBtn.disabled = true;
+        return;
+      }
+      currentUser = user;
+
+      emailField.textContent = `Email: ${user.email}`;
+
+      // Fetch profile info from 'users' table
+      const { data, error } = await supabase
+        .from('users')
+        .select('username, avatar_url')
+        .eq('id', user.id)
+        .single();
+
+      if (error) {
+        console.error('Error fetching profile:', error.message);
+      } else {
+        usernameInput.value = data?.username || '';
+        if (data?.avatar_url) {
+          const { data: urlData } = supabase.storage
+            .from('avatars')
+            .getPublicUrl(data.avatar_url);
+          profilePic.src = urlData.publicUrl;
+        } else {
+          profilePic.src = 'https://via.placeholder.com/100?text=No+Image';
+        }
+      }
+
+      await loadHighScores(user.id);
+    }
+
+    async function loadHighScores(userId) {
+      // Highest Snake score
+      const { data: snakeData, error: snakeError } = await supabase
+        .from('scores')
+        .select('score')
+        .eq('user_id', userId)
+        .eq('game', 'snake')
+        .order('score', { ascending: false })
+        .limit(1)
+        .single();
+
+      if (snakeError && snakeError.code !== 'PGRST116') {
+        console.error('Error loading snake score:', snakeError.message);
+      }
+      snakeScore.textContent = `🐍 Snake: ${snakeData?.score ?? 0}`;
+
+      // Highest Flappy Bird score
+      const { data: flappyData, error: flappyError } = await supabase
+        .from('scores')
+        .select('score')
+        .eq('user_id', userId)
+        .eq('game', 'flappybird')
+        .order('score', { ascending: false })
+        .limit(1)
+        .single();
+
+      if (flappyError && flappyError.code !== 'PGRST116') {
+        console.error('Error loading flappybird score:', flappyError.message);
+      }
+      flappyScore.textContent = `🐦 Flappy Bird: ${flappyData?.score ?? 0}`;
+    }
+
+    avatarInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (file) {
+        if (!file.type.startsWith('image/')) {
+          alert('Please select an image file.');
+          return;
+        }
+        avatarFile = file;
+        // Show preview
+        profilePic.src = URL.createObjectURL(file);
+      }
+    });
+
+    saveBtn.addEventListener('click', async () => {
+      if (!currentUser) return;
+      message.textContent = '';
+      saveBtn.disabled = true;
+
+      const newUsername = usernameInput.value.trim();
+
+      if (newUsername.length < 3) {
+        message.textContent = 'Username must be at least 3 characters.';
+        saveBtn.disabled = false;
+        return;
+      }
+
+      // 1. Upload avatar if changed
+      let avatarUrl = null;
+      if (avatarFile) {
+        const fileExt = avatarFile.name.split('.').pop();
+        const fileName = `${currentUser.id}.${fileExt}`;
+        const { error: uploadError } = await supabase.storage
+          .from('avatars')
+          .upload(fileName, avatarFile, { upsert: true });
+
+          if (uploadError) {
+  console.error('Upload error:', uploadError);
+  message.textContent = 'Failed to upload avatar: ' + uploadError.message;
+  saveBtn.disabled = false;
+  return;
+}
+
+        avatarUrl = fileName;
+      }
+
+      // 2. Update username and avatar_url in users table
+      const updateData = { username: newUsername };
+      if (avatarUrl) updateData.avatar_url = avatarUrl;
+
+      const { error: updateError } = await supabase
+        .from('users')
+        .upsert({ id: currentUser.id, ...updateData }, { onConflict: 'id' });
+
+        if (updateError) {
+  console.error('Failed to update profile:', updateError);
+  message.textContent = 'Failed to update profile: ' + updateError.message;
+  saveBtn.disabled = false;
+  return;
+}
+
+
+      message.textContent = 'Profile updated successfully!';
+      avatarFile = null;
+      saveBtn.disabled = false;
+    });
+
+    // Initialize
+    fetchProfile();
+  </script>
+</body>
+</html>
