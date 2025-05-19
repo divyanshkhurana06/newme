@@ -42,6 +42,83 @@
       margin: 5px;
       font-size: 1rem;
     }
+    .game-container {
+      display: flex;
+      gap: 20px;
+      align-items: flex-start;
+      justify-content: center;
+      margin-top: 20px;
+      position: relative;
+      max-width: 1200px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    .game-board {
+      position: relative;
+      flex-shrink: 0;
+    }
+    .chat-container {
+      background: #0f3460;
+      border: 2px solid #e94560;
+      border-radius: 10px;
+      padding: 15px;
+      width: 300px;
+      height: 400px;
+      display: flex;
+      flex-direction: column;
+      position: sticky;
+      top: 20px;
+      margin-left: 20px;
+    }
+    .chat-messages {
+      flex-grow: 1;
+      overflow-y: auto;
+      margin-bottom: 10px;
+      padding: 10px;
+      background: rgba(0, 0, 0, 0.2);
+      border-radius: 5px;
+    }
+    .chat-input-container {
+      display: flex;
+      gap: 10px;
+    }
+    .chat-input {
+      flex-grow: 1;
+      padding: 8px;
+      border: 1px solid #e94560;
+      border-radius: 5px;
+      background: rgba(255, 255, 255, 0.1);
+      color: white;
+      font-family: Arial, sans-serif;
+      font-size: 0.9rem;
+    }
+    .chat-send {
+      padding: 8px 15px;
+      background: #e94560;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      font-family: 'Press Start 2P', cursive;
+      font-size: 0.8rem;
+    }
+    .chat-send:hover {
+      background: #ff6b81;
+    }
+    .message {
+      margin: 5px 0;
+      padding: 5px;
+      border-radius: 5px;
+      font-size: 0.9rem;
+      font-family: Arial, sans-serif;
+    }
+    .message.system {
+      background: rgba(233, 69, 96, 0.2);
+      color: #e94560;
+    }
+    .message.player {
+      background: rgba(255, 255, 255, 0.1);
+    }
   </style>
 </head>
 <body>
@@ -55,6 +132,20 @@
 <div id="roomCodeDisplay"></div>
 <div id="status"></div>
 <div id="board" style="display:none;"></div>
+
+<div class="game-container">
+  <div class="game-board">
+    <div id="board" style="display:none;"></div>
+  </div>
+  <div class="chat-container">
+    <h3>Game Chat</h3>
+    <div class="chat-messages" id="chatMessages"></div>
+    <div class="chat-input-container">
+      <input type="text" class="chat-input" id="chatInput" placeholder="Type a message...">
+      <button class="chat-send" id="chatSend">Send</button>
+    </div>
+  </div>
+</div>
 
 <script type="module">
 import { createClient } from 'https://esm.sh/@supabase/supabase-js';
@@ -195,6 +286,72 @@ async function joinRoom() {
 
 createRoomBtn.onclick = createRoom;
 joinRoomBtn.onclick = joinRoom;
+
+// Chat functionality
+const chatMessages = document.getElementById('chatMessages');
+const chatInput = document.getElementById('chatInput');
+const chatSend = document.getElementById('chatSend');
+
+function addMessage(message, type = 'player') {
+  const messageElement = document.createElement('div');
+  messageElement.className = `message ${type}`;
+  messageElement.textContent = message;
+  chatMessages.appendChild(messageElement);
+  chatMessages.scrollTop = chatMessages.scrollHeight;
+}
+
+function sendMessage() {
+  const message = chatInput.value.trim();
+  if (message) {
+    // Send message through Supabase realtime
+    supabase
+      .channel('game-chat')
+      .send({
+        type: 'broadcast',
+        event: 'chat',
+        payload: {
+          message,
+          player: playerSymbol,
+          gameId: roomId
+        }
+      });
+    chatInput.value = '';
+  }
+}
+
+chatSend.addEventListener('click', sendMessage);
+chatInput.addEventListener('keypress', (e) => {
+  if (e.key === 'Enter') {
+    sendMessage();
+  }
+});
+
+// Subscribe to chat messages
+supabase
+  .channel('game-chat')
+  .on('broadcast', { event: 'chat' }, ({ payload }) => {
+    if (payload.gameId === roomId) {
+      const messageText = `${payload.player}: ${payload.message}`;
+      addMessage(messageText);
+    }
+  })
+  .subscribe();
+
+// Add system messages for game events
+function addSystemMessage(message) {
+  addMessage(message, 'system');
+}
+
+// Update existing game event handlers to include chat messages
+const originalHandleGameUpdate = handleMove;
+handleMove = function(index) {
+  originalHandleGameUpdate(index);
+  if (checkWinner(currentBoard)) {
+    addSystemMessage(`Player ${checkWinner(currentBoard)} wins!`);
+  } else if (currentBoard.every(cell => cell)) {
+    addSystemMessage("It's a draw!");
+  }
+};
 </script>
 </body>
 </html>

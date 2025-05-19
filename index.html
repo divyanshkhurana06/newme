@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Arcade Hub</title>
-  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet" />
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
   <style>
@@ -16,9 +16,62 @@
       display: flex;
       flex-direction: column;
       align-items: center;
-      justify-content: center;
+      justify-content: flex-start;
       height: 100vh;
       overflow: hidden;
+    }
+
+    /* Top navigation bar */
+    .topbar {
+      width: 100%;
+      max-width: 1000px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #0f3460;
+      border: 3px solid #e94560;
+      border-radius: 15px;
+      padding: 10px 30px;
+      box-sizing: border-box;
+      margin: 20px 0 40px 0;
+    }
+
+    .topbar-left {
+      display: flex;
+      gap: 30px;
+    }
+
+    .topbar-left a {
+      color: #fff;
+      text-decoration: none;
+      font-size: 0.8rem;
+      transition: color 0.3s, text-shadow 0.3s;
+    }
+    .topbar-left a:hover {
+      color: #e94560;
+      text-shadow: 0 0 10px #e94560;
+    }
+
+    #auth-button {
+      background-color: #e94560;
+      color: white;
+      border: none;
+      padding: 8px 20px;
+      font-size: 0.8rem;
+      font-family: 'Press Start 2P', cursive;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background 0.3s, box-shadow 0.3s;
+      white-space: nowrap;
+    }
+    #auth-button:hover:not(:disabled) {
+      background-color: #ff6b81;
+      box-shadow: 0 0 10px #ff6b81;
+    }
+    #auth-button:disabled {
+      cursor: default;
+      background-color: #5a2a3d;
+      box-shadow: none;
     }
 
     h1 {
@@ -57,49 +110,6 @@
       margin-top: 10px;
     }
 
-    #auth-controls {
-      position: absolute;
-      top: 20px;
-      right: 20px;
-    }
-
-    #auth-button {
-      background-color: #e94560;
-      color: white;
-      border: none;
-      padding: 10px 18px;
-      font-size: 0.8rem;
-      font-family: 'Press Start 2P', cursive;
-      border-radius: 8px;
-      cursor: pointer;
-      transition: background 0.3s;
-    }
-
-    #auth-button:hover {
-      background-color: #ff6b81;
-    }
-    .top-right-links {
-    position: fixed;
-    top: 10px;
-    right: 10px;
-    display: flex;
-    gap: 15px;
-    z-index: 1000;
-  }
-  .top-right-links a {
-    color: white;
-    background-color: #1e88e5;
-    padding: 8px 15px;
-    border-radius: 6px;
-    text-decoration: none;
-    font-weight: 600;
-    font-family: Arial, sans-serif;
-    transition: background-color 0.3s;
-  }
-  .top-right-links a:hover {
-    background-color: #1565c0;
-  }
-
     @keyframes pulse {
       0% { transform: scale(1); }
       50% { transform: scale(1.1); }
@@ -109,7 +119,12 @@
 </head>
 
 <body>
-  <div id="auth-controls">
+
+  <div class="topbar">
+    <div class="topbar-left">
+      <a href="profile.html" title="Profile">Profile</a>
+      <a href="leaderboard.html" title="Leaderboard">Leaderboard</a>
+    </div>
     <button id="auth-button">Sign In / Sign Up</button>
   </div>
 
@@ -120,10 +135,7 @@
     <div class="game-card" onclick="location.href='tictactoe.html'">Tic Tac Toe<span>❌⭕ Classic</span></div>
     <div class="game-card" onclick="location.href='snake.html'">Snake Game<span>🐍 Retro</span></div>
     <div class="game-card" onclick="location.href='flappybird.html'">Flappy Bird<span>🐦 Tap-tap!</span></div>
-  </div>
-  <div class="top-right-links">
-    <a href="profile.html">Profile</a>
-    <a href="leaderboard.html">Leaderboard</a>
+    <div class="game-card" onclick="location.href='chatbot.html'">AI Chatbot<span>🤖 Ask me anything!</span></div>
   </div>
 
   <script type="module">
@@ -133,7 +145,7 @@
     document.addEventListener('DOMContentLoaded', async () => {
       const authButton = document.getElementById("auth-button");
 
-      // Update button if already signed in
+      // Check if user is signed in and update button
       const { data: { session } } = await supabase.auth.getSession();
       if (session?.user?.email) {
         authButton.textContent = `🎉 ${session.user.email}`;
@@ -148,7 +160,7 @@
         if (error) console.error("Google sign-in error:", error.message);
       });
 
-      // Optional: watch login changes
+      // Listen for auth state changes
       supabase.auth.onAuthStateChange((event, session) => {
         if (event === 'SIGNED_IN' && session?.user?.email) {
           authButton.textContent = `🎉 ${session.user.email}`;
@@ -156,6 +168,8 @@
         }
       });
     });
+    
   </script>
+
 </body>
 </html>

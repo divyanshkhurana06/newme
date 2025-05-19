@@ -2,8 +2,10 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Snake Game</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Snake | Arcade Hub</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet" />
     <style>
         body {
             display: flex;
@@ -91,9 +93,31 @@
             cursor: pointer;
             margin-top: 1rem;
         }
+
+        .back-button {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            background: #e94560;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-family: 'Press Start 2P', cursive;
+            font-size: 0.8rem;
+            text-decoration: none;
+            transition: background 0.3s;
+            z-index: 1000;
+        }
+
+        .back-button:hover {
+            background: #ff6b81;
+        }
     </style>
 </head>
 <body>
+    <a href="index.html" class="back-button">← Back to Games</a>
     <button id="toggleTheme">Toggle Theme</button>
 
     <div id="startPopup">
@@ -242,15 +266,45 @@
                 alert("Please sign in to save your score.");
                 return;
             }
-    
+
+            // Check if profile exists, create if not
+            const { data: profile, error: profileError } = await supabase
+              .from('profiles')
+              .select('id')
+              .eq('id', user.id)
+              .single();
+
+            if (profileError && profileError.code === 'PGRST116') { // PGRST116 means no row found
+              console.log('No profile found for user, creating one...');
+              const { error: createProfileError } = await supabase
+                .from('profiles')
+                .insert({ id: user.id, username: 'Anonymous' }); // Create a basic profile
+              
+              if (createProfileError) {
+                console.error('Error creating profile:', createProfileError.message);
+                alert('Failed to save score: Could not create user profile.');
+                return;
+              }
+              console.log('Profile created successfully.');
+            } else if (profileError) {
+              console.error('Error checking profile:', profileError.message);
+              alert('Failed to save score: Error checking user profile.');
+              return;
+            }
+
             // Insert score into 'scores' table
-            const { error } = await supabase.from('scores').insert({
+            const { error: scoreError } = await supabase.from('scores').insert({
                 user_id: user.id,
                 game: gameName,
                 score: scoreValue,
             });
     
-            if (error) console.error("Score insert failed:", error.message);
+            if (scoreError) {
+              console.error("Score insert failed:", scoreError.message);
+              alert('Failed to save score: ' + scoreError.message);
+            } else {
+              console.log("Score saved successfully");
+            }
         }
     
         document.addEventListener("keydown", changeDirection);
