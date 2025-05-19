@@ -115,6 +115,65 @@
       50% { transform: scale(1.1); }
       100% { transform: scale(1); }
     }
+
+    /* Connect With Me Styles */
+    .connect-container {
+      margin-top: 40px;
+      background-color: #1b263b;
+      border: 3px solid #e94560;
+      border-radius: 15px;
+      padding: 30px;
+      text-align: center;
+      box-shadow: 0 0 20px rgba(233, 69, 96, 0.3);
+      width: 80%;
+      max-width: 600px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .connect-container h2 {
+      margin-top: 0;
+      color: #0f3460;
+      text-shadow: 2px 2px #e94560;
+      margin-bottom: 20px;
+    }
+
+    .connect-container h3 {
+      margin-top: 0;
+      color: #fff;
+      font-size: 1rem;
+      margin-bottom: 20px;
+    }
+
+    .connect-photo {
+      /* Removed fixed width/height and border-radius for rectangular photo */
+      background-color: #0f3460; /* Placeholder background */
+      border: 3px solid #e94560;
+      margin-bottom: 20px;
+      overflow: hidden; /* To contain the image */
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 0.7rem;
+      /* Ensure the image fits within the container */
+      max-width: 100%; /* Adjust as needed */
+      height: auto; /* Allow height to adjust based on image aspect ratio */
+      object-fit: contain;
+    }
+
+    .connect-links a {
+      color: #fff;
+      text-decoration: none;
+      font-size: 0.8rem;
+      margin: 0 15px;
+      transition: color 0.3s, text-shadow 0.3s;
+    }
+
+    .connect-links a:hover {
+      color: #e94560;
+      text-shadow: 0 0 10px #e94560;
+    }
   </style>
 </head>
 
@@ -135,7 +194,19 @@
     <div class="game-card" onclick="location.href='tictactoe.html'">Tic Tac Toe<span>❌⭕ Classic</span></div>
     <div class="game-card" onclick="location.href='snake.html'">Snake Game<span>🐍 Retro</span></div>
     <div class="game-card" onclick="location.href='flappybird.html'">Flappy Bird<span>🐦 Tap-tap!</span></div>
-    <div class="game-card" onclick="location.href='chatbot.html'">AI Chatbot<span>🤖 Ask me anything!</span></div>
+  </div>
+
+  <!-- Connect With Me Section -->
+  <div class="connect-container">
+    <h2>Connect with me</h2>
+    <h3>Divyansh Khurana</h3>
+    <div class="connect-photo"><img src="https://i.ibb.co/gMKgPCNX/IMG-0361.jpg" alt="User's Photo"></div>
+    <div class="connect-links">
+      <a href="https://www.linkedin.com/in/divyansh-khurana-6891a7264/" target="_blank">LinkedIn</a>
+      <a href="https://github.com/divyanshkhurana06" target="_blank">GitHub</a>
+      <a href="mailto:divyanshkhurana06@gmail.com">Email</a>
+      <a href="https://www.instagram.com/divyansh__khurana" target="_blank">Instagram</a>
+    </div>
   </div>
 
   <script type="module">
@@ -168,7 +239,6 @@
         }
       });
     });
-    
   </script>
 
 </body>

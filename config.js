@@ -1,2 +1,2 @@
-export const supabaseUrl = 'YOUR_SUPABASE_URL_REDACTED'
-export const supabaseKey = 'YOUR_SUPABASE_ANON_KEY_REDACTED'
+export const supabaseUrl = 'https://olrfaeygyssejtuybbdm.supabase.co'
+export const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9scmZhZXlneXNzZWp0dXliYmRtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDczMzk1MjQsImV4cCI6MjA2MjkxNTUyNH0.McZ0xC4H2sxXaOaa9Wh0vjEAPJ73H26qLHGap_AZ66I'
