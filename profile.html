@@ -131,7 +131,7 @@
       emailField.textContent = `Email: ${user.email}`;
 
       const { data, error } = await supabase
-        .from('profiles')
+        .from('users')
         .select('username')
         .eq('id', user.id)
         .single();
@@ -182,7 +182,7 @@
       }
 
       const { error: updateError } = await supabase
-        .from('profiles')
+        .from('users')
         .upsert({ id: currentUser.id, username: newUsername }, { onConflict: 'id' });
 
       if (updateError) {
