@@ -269,7 +269,7 @@
 
             // Check if profile exists, create if not
             const { data: profile, error: profileError } = await supabase
-              .from('profiles')
+              .from('users')
               .select('id')
               .eq('id', user.id)
               .single();
@@ -277,7 +277,7 @@
             if (profileError && profileError.code === 'PGRST116') { // PGRST116 means no row found
               console.log('No profile found for user, creating one...');
               const { error: createProfileError } = await supabase
-                .from('profiles')
+                .from('users')
                 .insert({ id: user.id, username: 'Anonymous' }); // Create a basic profile
               
               if (createProfileError) {
